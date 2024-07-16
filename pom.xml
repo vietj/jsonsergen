@@ -26,7 +26,7 @@
 
   <groupId>com.julienviet</groupId>
   <artifactId>jsonsergen</artifactId>
-  <version>0.0.2</version>
+  <version>0.0.3-SNAPSHOT</version>
   <name>Json Serializer for Vert.x Data Objects</name>
 
   <developers>
