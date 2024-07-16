@@ -141,6 +141,16 @@
             </execution>
           </executions>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <configuration>
+            <sourceFileIncludes>
+              <sourceFileInclude>**/*.java</sourceFileInclude>
+            </sourceFileIncludes>
+            <doclint>none</doclint>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
