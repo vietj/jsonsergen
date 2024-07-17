@@ -156,15 +156,15 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
     writer.print("    }\n");
     writer.print("  }\n");
     writer.print("\n");
-    writer.print("  " + visibility + " static io.vertx.core.buffer.Buffer toJsonBuffer(" + simpleName + " obj) throws java.io.IOException {\n");
+    writer.print("  " + visibility + " static io.vertx.core.buffer.Buffer toJsonBuffer(" + simpleName + " obj) {\n");
     writer.print("    return toJsonBuffer(obj, (o, gen) -> toJson2(o, gen));\n");
     writer.print("  }\n");
     writer.print("\n");
-    writer.print("  " + visibility + " static io.vertx.core.buffer.Buffer toJsonBuffer(" + simpleName + "[] list) throws java.io.IOException {\n");
+    writer.print("  " + visibility + " static io.vertx.core.buffer.Buffer toJsonBuffer(" + simpleName + "[] list) {\n");
     writer.print("    return toJsonBuffer(list, (o, gen) -> toJson2(o, gen));\n");
     writer.print("  }\n");
     writer.print("\n");
-    writer.print("  " + visibility + " static io.vertx.core.buffer.Buffer toJsonBuffer(Iterable<" + simpleName + "> list) throws java.io.IOException {\n");
+    writer.print("  " + visibility + " static io.vertx.core.buffer.Buffer toJsonBuffer(Iterable<" + simpleName + "> list) {\n");
     writer.print("    return toJsonBuffer(list, (o, gen) -> toJson2(o, gen));\n");
     writer.print("  }\n");
     writer.print("\n");
