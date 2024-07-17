@@ -99,6 +99,11 @@
 
     <!-- Test dependencies -->
     <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>${junit.version}</version>
@@ -136,6 +141,7 @@
               <configuration>
                 <annotationProcessors>
                   <annotationProcessor>io.vertx.codegen.CodeGenProcessor</annotationProcessor>
+                  <annotationProcessor>org.openjdk.jmh.generators.BenchmarkProcessor</annotationProcessor>
                 </annotationProcessors>
               </configuration>
             </execution>
