@@ -19,8 +19,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.json.jackson.DatabindCodec;
 import io.vertx.core.json.jackson.JacksonCodec;
 import io.vertx.core.spi.json.JsonCodec;
-import com.julienviet.jsonsergen.dsljson.DslJsonCodec;
-import com.julienviet.jsonsergen.fastjson.FastJsonCodec;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -52,7 +50,7 @@ public class JsonEncodeBenchmark extends BenchmarkBase {
     user.setAge(3);
     user.setAddress(address);
     this.user = user;
-    this.userJson = new JsonObject(UserJsonSerializer.toJsonBuffer(user));
+    this.userJson = new JsonObject(UserJsonSerializer.Jackson.toJsonBuffer(user));
     this.jacksonCodec = new JacksonCodec();
     this.databindCodec = new DatabindCodec();
   }
@@ -81,8 +79,18 @@ public class JsonEncodeBenchmark extends BenchmarkBase {
   }
 
   @Benchmark
-  public void jsonSerGen(Blackhole blackhole) throws Exception {
-    bufferJsonSerGen(user, blackhole);
+  public void jsonSerGenJackson(Blackhole blackhole) throws Exception {
+    bufferJsonSerGenJackson(user, blackhole);
+  }
+
+  @Benchmark
+  public void jsonSerGenFastJson(Blackhole blackhole) throws Exception {
+    bufferJsonSerGenFastJson(user, blackhole);
+  }
+
+  @Benchmark
+  public void jsonSerGenDslJson(Blackhole blackhole) throws Exception {
+    bufferJsonSerGenDslJson(user, blackhole);
   }
 
   private void bufferJackson(JsonObject user, Blackhole blackhole) throws Exception {
@@ -93,7 +101,15 @@ public class JsonEncodeBenchmark extends BenchmarkBase {
     blackhole.consume(databindCodec.toBuffer(user));
   }
 
-  private void bufferJsonSerGen(User user, Blackhole blackhole) throws Exception {
-    blackhole.consume(UserJsonSerializer.toJsonBuffer(user));
+  private void bufferJsonSerGenJackson(User user, Blackhole blackhole) throws Exception {
+    blackhole.consume(UserJsonSerializer.Jackson.toJsonBuffer(user));
+  }
+
+  private void bufferJsonSerGenFastJson(User user, Blackhole blackhole) throws Exception {
+    blackhole.consume(UserJsonSerializer.FastJson.toJsonBuffer(user));
+  }
+
+  private void bufferJsonSerGenDslJson(User user, Blackhole blackhole) throws Exception {
+    blackhole.consume(UserJsonSerializer.DslJson.toJsonBuffer(user));
   }
 }

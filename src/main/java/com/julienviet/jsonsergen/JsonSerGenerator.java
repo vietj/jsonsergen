@@ -6,19 +6,14 @@ import io.vertx.codegen.PropertyInfo;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.format.*;
 import io.vertx.codegen.type.*;
-import io.vertx.codegen.writer.CodeWriter;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.TypeElement;
-import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.annotation.Annotation;
 import java.time.Instant;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
@@ -27,6 +22,8 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
 
   private Case formatter;
   private ProcessingEnvironment processingEnvironment;
+  private List<WriterPlugin> writerPlugins = new ArrayList<>();
+  private WriterPlugin writerPlugin;
 
   public JsonSerGenerator(ProcessingEnvironment processingEnvironment) {
     this.kinds = Collections.singleton("dataObject");
@@ -51,11 +48,21 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
   @Override
   public String render(DataObjectModel model, int index, int size, Map<String, Object> session) {
 
+    AnnotationValueInfo info = model.getAnnotations().stream().filter(ann -> ann.getName().equals(JsonSerGen.class.getName())).findFirst().get();
+    List<String> backends = (List<String>) info.getMember("backends");
+    writerPlugins.clear();
+    backends.forEach(backendName -> {
+      for (Backend backend : Backend.values()) {
+        if (backendName.equals(backend.name())) {
+          writerPlugins.add(backend.plugin);
+        }
+      }
+    });
+
     formatter = getCase(model);
 
     StringWriter buffer = new StringWriter();
-    PrintWriter writer = new PrintWriter(buffer);
-    CodeWriter code = new CodeWriter(writer);
+    IndentableWriter writer = new IndentableWriter(buffer);
     String visibility= model.isPublicConverter() ? "public" : "";
     boolean inheritConverter = model.getInheritConverter();
 
@@ -72,24 +79,36 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
     writer.print(" * Converter and mapper for {@link " + model.getType() + "}.\n");
     writer.print(" * NOTE: This class has been automatically generated from the {@link " + model.getType() + "} original class using Vert.x codegen.\n");
     writer.print(" */\n");
-    code
-      .codeln("public class " + model.getType().getSimpleName() + "JsonSerializer {"
-      ).newLine();
+    writer.print("public class " + model.getType().getSimpleName() + "JsonSerializer {\n");
 
+    // Blank
     writer.print("\n");
+    writer.indent();
 
     //
-    writer.print("  private static final com.fasterxml.jackson.core.JsonFactory JSON_FACTORY = com.fasterxml.jackson.core.JsonFactory.builder().recyclerPool(new com.julienviet.jsonsergen.FastThreadLocalRecyclerPool()).build();\n");
+    writerPlugins.forEach(p -> {
+      writerPlugin = p;
+      writer.print("public static class " + p.scope() + " {\n");
+      writer.indent();
+      p.beginClass(writer, model.getFqn());
+      genToJson(visibility, inheritConverter, model, writer);
+      writer.unindent();
+      writer.print("}\n");
+    });
 
-    writer.print("  private static com.fasterxml.jackson.core.JsonGenerator createGenerator(java.io.OutputStream out) throws java.io.IOException {\n");
-    writer.print("    return JSON_FACTORY.createGenerator(out);\n");
-    writer.print("  }\n");
+    if (writerPlugins.size() > 0) {
+      writer.print("public static io.vertx.core.buffer.Buffer toJsonBuffer(" + model.getFqn() + " obj) {\n");
+      writer.print("  return " + writerPlugins.get(0).scope() + ".toJsonBuffer(obj);\n");
+      writer.print("}\n");
+      writer.print("public static io.vertx.core.buffer.Buffer toJsonBuffer(java.util.List<" + model.getFqn() + "> obj) {\n");
+      writer.print("  return " + writerPlugins.get(0).scope() + ".toJsonBuffer(obj);\n");
+      writer.print("}\n");
+      writer.print("public static io.vertx.core.buffer.Buffer toJsonBuffer(" + model.getFqn() + "[] obj) {\n");
+      writer.print("  return " + writerPlugins.get(0).scope() + ".toJsonBuffer(obj);\n");
+      writer.print("}\n");
+    }
 
-
-
-    writer.print("\n");
-    genToJson(visibility, inheritConverter, model, writer);
-
+    writer.unindent();
     writer.print("}\n");
     return buffer.toString();
   }
@@ -134,88 +153,38 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
     return false;
   }
 
-  private void genToJson(String visibility, boolean inheritConverter, DataObjectModel model, PrintWriter writer) {
-    String simpleName = model.getType().getSimpleName();
-    writer.print("  " + visibility + " static String toJsonString(" + simpleName + " obj) {\n");
-    writer.print("    return \"todo\";\n");
-    writer.print("  }\n");
-    writer.print("\n");
-    writer.print("  " + visibility + " static <T> io.vertx.core.buffer.Buffer toJsonBuffer(T obj, java.util.function.BiConsumer<T, com.fasterxml.jackson.core.JsonGenerator> cons) {\n");
-    writer.print("    com.fasterxml.jackson.core.util.BufferRecycler br = JSON_FACTORY._getBufferRecycler();\n");
-    writer.print("    try (com.fasterxml.jackson.core.util.ByteArrayBuilder bb = new com.fasterxml.jackson.core.util.ByteArrayBuilder(br)) {\n");
-    writer.print("      com.fasterxml.jackson.core.JsonGenerator generator = createGenerator(bb);\n");
-    writer.print("      cons.accept(obj, generator);\n");
-    writer.print("      generator.close();\n");
-    writer.print("      byte[] result = bb.toByteArray();\n");
-    writer.print("      bb.release();\n");
-    writer.print("      return io.vertx.core.buffer.Buffer.buffer(result);\n");
-    writer.print("    } catch (java.io.IOException e) {\n");
-    writer.print("      throw new io.vertx.core.json.EncodeException(e.getMessage(), e);\n");
-    writer.print("    } finally {\n");
-    writer.print("      br.releaseToPool();\n");
-    writer.print("    }\n");
-    writer.print("  }\n");
-    writer.print("\n");
-    writer.print("  " + visibility + " static io.vertx.core.buffer.Buffer toJsonBuffer(" + simpleName + " obj) {\n");
-    writer.print("    return toJsonBuffer(obj, (o, gen) -> toJson2(o, gen));\n");
-    writer.print("  }\n");
-    writer.print("\n");
-    writer.print("  " + visibility + " static io.vertx.core.buffer.Buffer toJsonBuffer(" + simpleName + "[] list) {\n");
-    writer.print("    return toJsonBuffer(list, (o, gen) -> toJson2(o, gen));\n");
-    writer.print("  }\n");
-    writer.print("\n");
-    writer.print("  " + visibility + " static io.vertx.core.buffer.Buffer toJsonBuffer(Iterable<" + simpleName + "> list) {\n");
-    writer.print("    return toJsonBuffer(list, (o, gen) -> toJson2(o, gen));\n");
-    writer.print("  }\n");
-    writer.print("\n");
-    writer.print("  " + visibility + " static void toJson(" + simpleName + "[] list, com.fasterxml.jackson.core.JsonGenerator generator) throws java.io.IOException {\n");
-    writer.print("    generator.writeStartArray();\n");
-    writer.print("    for (" + simpleName + " obj : list) {\n");
-    writer.print("      toJson(obj, generator);\n");
-    writer.print("    }\n");
-    writer.print("    generator.writeEndArray();\n");
-    writer.print("  }\n");
-    writer.print("\n");
-    writer.print("  " + visibility + " static void toJson(Iterable<" + simpleName + "> list, com.fasterxml.jackson.core.JsonGenerator generator) throws java.io.IOException {\n");
-    writer.print("    generator.writeStartArray();\n");
-    writer.print("    for (" + simpleName + " obj : list) {\n");
-    writer.print("      toJson(obj, generator);\n");
-    writer.print("    }\n");
-    writer.print("    generator.writeEndArray();\n");
-    writer.print("  }\n");
-    writer.print("\n");
-    writer.print("  " + visibility + " static void toJson2(" + simpleName + " obj, com.fasterxml.jackson.core.JsonGenerator generator) {\n");
-    writer.print("    try {\n");
-    writer.print("      toJson(obj, generator);\n");
-    writer.print("    }\n");
-    writer.print("    catch(java.io.IOException e) {\n");
-    writer.print("      throw new io.vertx.core.json.EncodeException(e.getMessage(), e);\n");
-    writer.print("    }\n");
-    writer.print("  }\n");
-    writer.print("\n");
-    writer.print("  " + visibility + " static void toJson2(" + simpleName + "[] list, com.fasterxml.jackson.core.JsonGenerator generator) {\n");
-    writer.print("    try {\n");
-    writer.print("      toJson(list, generator);\n");
-    writer.print("    }\n");
-    writer.print("    catch(java.io.IOException e) {\n");
-    writer.print("      throw new io.vertx.core.json.EncodeException(e.getMessage(), e);\n");
-    writer.print("    }\n");
-    writer.print("  }\n");
-    writer.print("\n");
-    writer.print("  " + visibility + " static void toJson2(Iterable<" + simpleName + "> list, com.fasterxml.jackson.core.JsonGenerator generator) {\n");
-    writer.print("    try {\n");
-    writer.print("      toJson(list, generator);\n");
-    writer.print("    }\n");
-    writer.print("    catch(java.io.IOException e) {\n");
-    writer.print("      throw new io.vertx.core.json.EncodeException(e.getMessage(), e);\n");
-    writer.print("    }\n");
-    writer.print("  }\n");
-    writer.print("  " + visibility + " static void toJson(" + simpleName + " obj, com.fasterxml.jackson.core.JsonGenerator generator) throws java.io.IOException {\n");
-    writer.print("    generator.writeStartObject();\n");
+  private boolean first;
+
+  private void genToJson(String visibility, boolean inheritConverter, DataObjectModel model, IndentableWriter writer) {
+    declared.clear();
+    writerPlugin.beginObject(writer, model.getFqn());
+    writer.indent();
+    model.getPropertyMap().values().forEach(prop -> {
+      String type;
+      switch (prop.getKind()) {
+        case VALUE:
+          type = prop.getType().getName();
+          break;
+        case LIST:
+          type = "java.util.List<" + prop.getType().getName() + ">";
+          break;
+        case SET:
+          type = "java.util.Set<" + prop.getType().getName() + ">";
+          break;
+        case MAP:
+          type = "java.util.Map<String, " + prop.getType().getName() + ">";
+          break;
+        default:
+          throw new AssertionError();
+      }
+      writer.print(type + " " + prop.getName() + ";\n");
+    });
+    writerPlugin.genWriteBeginObject(writer);
+    first = true;
     model.getPropertyMap().values().forEach(prop -> {
       if ((prop.isDeclared() || inheritConverter) && prop.getGetterMethod() != null) {
         if (!isJsonSerializable(prop)) {
-          writer.print("    // Property " + prop.getName() + " / " + prop.getType() + " is not serializable\n");
+          writer.print("// Property " + prop.getName() + " / " + prop.getType() + " is not serializable\n");
           return;
         }
         ClassKind propKind = prop.getType().getKind();
@@ -281,15 +250,16 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
       }
     });
 
-    writer.print("    generator.writeEndObject();\n");
-    writer.print("  }\n");
+    writerPlugin.genWriteEndObject(writer);
+    writer.unindent();
+    writerPlugin.endObject(writer, model.getFqn());
   }
 
-  private void generatePropertyName(String indent, String jsonPropertyName, PrintWriter writer) {
-    writer.print(indent + "generator.writeFieldName(\"" + jsonPropertyName + "\");\n");
+  private void generatePropertyName(String jsonPropertyName, IndentableWriter writer) {
+    writerPlugin.genWriteFieldName(writer, '"' + jsonPropertyName + '"');
   }
 
-  private void generateProperty(String indent, String before, String expr, String after, TypeInfo type, PrintWriter writer) {
+  private void generateProperty(String before, String expr, String after, TypeInfo type, IndentableWriter writer) {
     if (type.getKind() == ClassKind.PRIMITIVE) {
       switch (type.getSimpleName()) {
         case "byte":
@@ -298,17 +268,18 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
         case "long":
         case "double":
         case "float":
-          writer.print(indent + "generator.writeNumber(" + before + expr + after + ");\n");
+          writerPlugin.genWriteNumber(writer, before + expr + after, type.getName());
           break;
         case "boolean":
-          writer.print(indent + "generator.writeBoolean(" + before + expr + after + ");\n");
+          writerPlugin.genWriteBoolean(writer, before + expr + after);
           break;
       }
     } else {
-      writer.print(indent + "if (" + expr + " != null) {\n");
+      writer.print("if (" + expr + " != null) {\n");
+      writer.indent();
       switch (type.getKind()) {
         case STRING:
-          writer.print(indent + "  generator.writeString(" + before + expr + after + ");\n");
+          writerPlugin.genWriteString(writer, before + expr + after);
           break;
         case BOXED_PRIMITIVE:
           switch (type.getSimpleName()) {
@@ -318,76 +289,118 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
             case "Long":
             case "Double":
             case "Float":
-              writer.print(indent + "  generator.writeNumber(" + before + expr + after + ");\n");
+              writerPlugin.genWriteNumber(writer, before + expr + after, type.getName());
               break;
             case "Boolean":
-              writer.print(indent + "  generator.writeBoolean(" + before + expr + after + ");\n");
+              writerPlugin.genWriteBoolean(writer, before + expr + after);
               break;
           }
           break;
         case ENUM:
-          writer.print(indent + "  generator.writeString(" + before + expr + after + ");\n");
+          writerPlugin.genWriteString(writer, before + expr + after);
           break;
         case JSON_OBJECT:
-          writer.print(indent + "  io.vertx.core.json.jackson.JacksonCodec.encodeJson(" + before + expr + after + ".getMap(), generator);\n");
+          writerPlugin.genWriteJson(writer, before + expr + after);
           break;
         case JSON_ARRAY:
-          writer.print(indent + "  io.vertx.core.json.jackson.JacksonCodec.encodeJson(" + before + expr + after + ".getList(), generator);\n");
+          writerPlugin.genWriteJson(writer, before + expr + after);
           break;
         case OTHER:
           DataObjectInfo dataObject = type.getDataObject();
           if (dataObject != null) {
             if (isJsonSerializable(type)) {
-              writer.print(indent + "  " + type.getName() + "JsonSerializer.toJson(" + before + expr + after + ", generator);\n");
+              writerPlugin.genWriteJsonSerGen(writer, type.getName() + "JsonSerializer." + writerPlugin.scope(), before + expr + after);
             } else if (dataObject.isSerializable()) {
-              writer.print(indent + "  io.vertx.core.json.jackson.JacksonCodec.encodeJson(" + before + expr + after + ", generator);\n");
+              writerPlugin.genWriteJson(writer, before + expr + after);
             } else {
-              writer.print(indent + "  // TODO kind=" + type.getKind() + "\n");
+              writer.print("// TODO kind=" + type.getKind() + "\n");
             }
           }
           break;
         case OBJECT:
-          writer.print(indent + "  io.vertx.core.json.jackson.JacksonCodec.encodeJson(" + before + expr + after + ", generator);\n");
+//          writer.print("io.vertx.core.json.jackson.JacksonCodec.encodeJson(" + before + expr + after + ", generator);\n");
           break;
         default:
-          writer.print(indent + "  // TODO kind=" + type.getKind() + "\n");
+          writer.print("// TODO kind=" + type.getKind() + "\n");
           break;
       }
-      writer.print(indent + "} else {\n");
-      writer.print(indent + "  generator.writeNull();\n");
-      writer.print(indent + "}\n");
+      writer.unindent();
+      writer.print("} else {\n");
+      writer.indent();
+      writerPlugin.genWriteNull(writer);
+      writer.unindent();
+      writer.print("}\n");
     }
   }
 
-  private void genPropToJson(String before, String after, PropertyInfo prop, PrintWriter writer) {
-    String indent = "    ";
-    String jsonPropertyName = LowerCamelCase.INSTANCE.to(formatter, prop.getName());
-    if (prop.isList() || prop.isSet()) {
-      generatePropertyName(indent, jsonPropertyName, writer);
-      writer.print(indent + "if (obj." + prop.getGetterMethod() + "() != null) {\n");
-      writer.print(indent + "  generator.writeStartArray();\n");
-      writer.print(indent + "  for (" + prop.getType().getName() + " _elt : obj." + prop.getGetterMethod() + "()) {\n");
-      generateProperty("        ", before, "_elt", after, prop.getType(), writer);
-      writer.print(indent + "  }\n");
-      writer.print(indent + "  generator.writeEndArray();\n");
-      writer.print(indent + "} else {\n");
-      writer.print(indent + "  generator.writeNull();\n");
-      writer.print(indent + "}\n");
-    } else if (prop.isMap()) {
-      generatePropertyName(indent, jsonPropertyName, writer);
-      writer.print(indent + "if (obj." + prop.getGetterMethod() + "() != null) {\n");
-      writer.print(indent + "  generator.writeStartObject();\n");
-      writer.print(indent + "  for (java.util.Map.Entry<String, " + prop.getType().getName() + "> _elt : obj." + prop.getGetterMethod() + "().entrySet()) {\n");
-      writer.print(indent + "    generator.writeFieldName(_elt.getKey());\n");
-      generateProperty("        ", before, "_elt", ".getValue()" + after, prop.getType(), writer);
-      writer.print(indent + "  }\n");
-      writer.print(indent + "  generator.writeEndObject();\n");
-      writer.print(indent + "} else {\n");
-      writer.print(indent + "  generator.writeNull();\n");
-      writer.print(indent + "}\n");
+  private Set<String> declared = new HashSet<>();
+
+  private void genPropToJson(String before, String after, PropertyInfo prop, IndentableWriter writer) {
+    if (first) {
+      first = false;
     } else {
-      generatePropertyName(indent, jsonPropertyName, writer);
-      generateProperty("    ", before, "obj." + prop.getGetterMethod() + "()", after, prop.getType(), writer);
+      writerPlugin.genWriteObjectSeparator(writer);
+    }
+    String jsonPropertyName = LowerCamelCase.INSTANCE.to(formatter, prop.getName());
+    generatePropertyName(jsonPropertyName, writer);
+    writer.print(prop.getName() + " = obj." + prop.getGetterMethod() + "();\n");
+    if (prop.isList() || prop.isSet()) {
+      writer.print("if (" + prop.getName() + " != null) {\n");
+      writer.indent();
+      writerPlugin.genWriteBeginArray(writer);
+      if (prop.isList()) {
+        writer.print("int len_ = " + prop.getName() + ".size();\n");
+        writer.print("for (int i_ = 0;i_ < len_;i_++) {\n");
+        writer.indent();
+        writer.print("if (i_ > 0) {\n");
+        writer.indent();
+        writerPlugin.genWriteArraySeparator(writer);
+        writer.unindent();
+        writer.print("}\n");
+        writer.print(prop.getType().getName() + " elt_ = " + prop.getName() + ".get(i_);\n");
+        generateProperty(before, "elt_", after, prop.getType(), writer);
+        writer.unindent();
+        writer.print("}\n");
+      } else {
+        writer.print("for (java.util.Iterator<" + prop.getType().getName() + "> i_ = " +  prop.getName() + ".iterator();i_.hasNext();) {\n");
+        writer.indent();
+        writer.print(prop.getType().getName() + " elt_ = i_.next();\n");
+        generateProperty(before, "elt_", after, prop.getType(), writer);
+        writer.print("if (i_.hasNext()) {\n");
+        writer.indent();
+        writerPlugin.genWriteArraySeparator(writer);
+        writer.unindent();
+        writer.print("}\n");
+        writer.unindent();
+        writer.print("}\n");
+      }
+
+      writerPlugin.genWriteEndArray(writer);
+      writer.unindent();
+      writer.print("} else {\n");
+      writer.indent();
+      writerPlugin.genWriteNull(writer);
+      writer.unindent();
+      writer.print("}\n");
+    } else if (prop.isMap()) {
+      writer.print("if (" + prop.getName() + " != null) {\n");
+      writer.indent();
+      writerPlugin.genWriteBeginObject(writer);
+      writer.print("for (java.util.Map.Entry<String, " + prop.getType().getName() + "> _elt : " + prop.getName() + ".entrySet()) {\n");
+      writer.indent();
+      writerPlugin.genWriteFieldName(writer, "_elt.getKey()");
+      generateProperty(before, "_elt", ".getValue()" + after, prop.getType(), writer);
+      writer.unindent();
+      writer.print("}\n");
+      writerPlugin.genWriteEndObject(writer);
+      writer.unindent();
+      writer.print("} else {\n");
+      writer.indent();
+      writerPlugin.genWriteNull(writer);
+      writer.unindent();
+      writer.print("}\n");
+    } else {
+      generateProperty(before, prop.getName(), after, prop.getType(), writer);
     }
   }
 

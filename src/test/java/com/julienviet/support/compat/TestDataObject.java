@@ -11,6 +11,7 @@
 
 package com.julienviet.support.compat;
 
+import com.julienviet.jsonsergen.Backend;
 import io.vertx.codegen.annotations.DataObject;
 import com.julienviet.jsonsergen.JsonSerGen;
 import io.vertx.core.buffer.Buffer;
@@ -26,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 @DataObject
-@JsonSerGen
+@JsonSerGen(backends = {Backend.FAST_JSON,Backend.JACKSON})
 public class TestDataObject {
 
   public static String serializeZonedDateTime(ZonedDateTime value) {

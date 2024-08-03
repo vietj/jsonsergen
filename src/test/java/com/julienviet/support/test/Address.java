@@ -1,10 +1,11 @@
 package com.julienviet.support.test;
 
+import com.julienviet.jsonsergen.Backend;
 import io.vertx.codegen.annotations.DataObject;
 import com.julienviet.jsonsergen.JsonSerGen;
 
 @DataObject
-@JsonSerGen
+@JsonSerGen(backends = {Backend.JACKSON,Backend.FAST_JSON, Backend.DSL_JSON})
 public class Address {
 
   private String street;

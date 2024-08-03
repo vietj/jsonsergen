@@ -1,4 +1,4 @@
-package com.julienviet.jsonsergen;
+package com.julienviet.jsonsergen.jackson;
 
 import com.fasterxml.jackson.core.util.BufferRecycler;
 import com.fasterxml.jackson.core.util.RecyclerPool;

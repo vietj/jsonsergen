@@ -27,16 +27,12 @@ public class FastJsonCodec implements JsonCodec {
 
   @Override
   public <T> T fromString(String json, Class<T> clazz) throws DecodeException {
-    JSONReader reader = JSONReader.of(json);
-    reader.next();
-
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public <T> T fromBuffer(Buffer json, Class<T> clazz) throws DecodeException {
-    // Temp
-    return new JacksonCodec().fromBuffer(json, clazz);
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -80,7 +76,7 @@ public class FastJsonCodec implements JsonCodec {
     return jsonWriter;
   }
 
-  private static void encodeJson(Object json, JSONWriter generator) throws EncodeException {
+  public static void encodeJson(Object json, JSONWriter generator) throws EncodeException {
     if (json instanceof JsonObject) {
       json = ((JsonObject)json).getMap();
     } else if (json instanceof JsonArray) {
@@ -145,7 +141,7 @@ public class FastJsonCodec implements JsonCodec {
     } else if (json == null) {
       generator.writeNull();
     } else {
-      throw new EncodeException("Mapping " + json.getClass().getName() + "  is not available without Jackson Databind on the classpath");
+      throw new EncodeException("Mapping " + json.getClass().getName() + "  is not available");
     }
   }
 }
