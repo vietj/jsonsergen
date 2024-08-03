@@ -79,7 +79,7 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
     writer.print("\n");
 
     //
-    writer.print("  private static final com.fasterxml.jackson.core.JsonFactory JSON_FACTORY = com.fasterxml.jackson.core.JsonFactory.builder().build();\n");
+    writer.print("  private static final com.fasterxml.jackson.core.JsonFactory JSON_FACTORY = com.fasterxml.jackson.core.JsonFactory.builder().recyclerPool(new com.julienviet.jsonsergen.FastThreadLocalRecyclerPool()).build();\n");
 
     writer.print("  private static com.fasterxml.jackson.core.JsonGenerator createGenerator(java.io.OutputStream out) throws java.io.IOException {\n");
     writer.print("    return JSON_FACTORY.createGenerator(out);\n");

@@ -7,6 +7,7 @@ import com.julienviet.support.test.UserJsonSerializer;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 
