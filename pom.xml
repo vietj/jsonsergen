@@ -1,9 +1,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>io.vertx</groupId>
-    <artifactId>vertx-parent</artifactId>
-    <version>19</version>
+    <groupId>com.julienviet</groupId>
+    <artifactId>parent</artifactId>
+    <version>1</version>
   </parent>
 
   <organization>
@@ -24,7 +24,6 @@
     <url>git@github.com:vietj/jsonsergen.git</url>
   </scm>
 
-  <groupId>com.julienviet</groupId>
   <artifactId>jsonsergen</artifactId>
   <version>0.0.6-SNAPSHOT</version>
   <name>Json Serializer for Vert.x Data Objects</name>
@@ -36,25 +35,12 @@
     </developer>
   </developers>
 
-  <distributionManagement>
-    <snapshotRepository>
-      <id>sonatype-nexus-snapshots</id>
-      <name>Sonatype Snapshots Repository</name>
-      <url>${sonatype.snapshotRepository}</url>
-    </snapshotRepository>
-    <repository>
-      <id>sonatype-nexus-staging</id>
-      <name>Sonatype Release Repository</name>
-      <url>${sonatype.releaseRepository}</url>
-    </repository>
-  </distributionManagement>
-
   <properties>
-    <stack.version>4.5.9</stack.version>
+    <vertx.version>5.0.0.CR8</vertx.version>
     <junit.version>4.13.1</junit.version>
     <assertj.version>3.4.1</assertj.version>
-    <sonatype.releaseRepository>https://oss.sonatype.org/service/local/staging/deploy/maven2/</sonatype.releaseRepository>
-    <sonatype.snapshotRepository>https://oss.sonatype.org/content/repositories/snapshots/</sonatype.snapshotRepository>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
   </properties>
 
   <dependencyManagement>
@@ -62,7 +48,7 @@
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-dependencies</artifactId>
-        <version>${stack.version}</version>
+        <version>${vertx.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -134,7 +120,6 @@
       <plugins>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.13.0</version>
           <executions>
             <execution>
               <id>default-testCompile</id>
@@ -146,16 +131,6 @@
               </configuration>
             </execution>
           </executions>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-javadoc-plugin</artifactId>
-          <configuration>
-            <sourceFileIncludes>
-              <sourceFileInclude>**/*.java</sourceFileInclude>
-            </sourceFileIncludes>
-            <doclint>none</doclint>
-          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>

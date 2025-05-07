@@ -1,6 +1,5 @@
 package com.julienviet.jsonsergen.dsljson;
 
-import com.alibaba.fastjson2.JSONWriter;
 import com.dslplatform.json.BoolConverter;
 import com.dslplatform.json.DslJson;
 import com.dslplatform.json.JsonWriter;
@@ -8,6 +7,7 @@ import com.dslplatform.json.NumberConverter;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.internal.buffer.BufferInternal;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.JsonArray;
@@ -53,7 +53,7 @@ public class DslJsonCodec implements JsonCodec {
     JsonWriter writer = encodeJson(object, pretty);
     int len = writer.size();
     ByteBuf bbuff = Unpooled.copiedBuffer(writer.getByteBuffer(), 0, len);
-    return Buffer.buffer(bbuff);
+    return BufferInternal.buffer(bbuff);
   }
 
 

@@ -1,11 +1,11 @@
 package com.julienviet.jsonsergen;
 
-import io.vertx.codegen.DataObjectModel;
-import io.vertx.codegen.Generator;
-import io.vertx.codegen.PropertyInfo;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.format.*;
-import io.vertx.codegen.type.*;
+import io.vertx.codegen.processor.DataObjectModel;
+import io.vertx.codegen.processor.Generator;
+import io.vertx.codegen.processor.PropertyInfo;
+import io.vertx.codegen.processor.type.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
@@ -48,8 +48,8 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
   @Override
   public String render(DataObjectModel model, int index, int size, Map<String, Object> session) {
 
-    AnnotationValueInfo info = model.getAnnotations().stream().filter(ann -> ann.getName().equals(JsonSerGen.class.getName())).findFirst().get();
-    List<String> backends = (List<String>) info.getMember("backends");
+    AnnotationValueInfo jsonSerGen = model.getAnnotations().stream().filter(ann -> ann.getName().equals(JsonSerGen.class.getName())).findFirst().get();
+    List<String> backends = (List<String>) jsonSerGen.getMember("backends");
     writerPlugins.clear();
     backends.forEach(backendName -> {
       for (Backend backend : Backend.values()) {
@@ -59,12 +59,12 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
       }
     });
 
-    formatter = getCase(model);
+    formatter = getCase(jsonSerGen);
 
     StringWriter buffer = new StringWriter();
     IndentableWriter writer = new IndentableWriter(buffer);
-    String visibility= model.isPublicConverter() ? "public" : "";
-    boolean inheritConverter = model.getInheritConverter();
+    String visibility= "public";
+    boolean inheritConverter = false;
 
     writer.print("package " + model.getType().getPackageName() + ";\n");
     writer.print("\n");
@@ -404,9 +404,8 @@ public class JsonSerGenerator extends Generator<DataObjectModel> {
     }
   }
 
-  private Case getCase(DataObjectModel model) {
-    AnnotationValueInfo abc = model.getAnnotationContainer();
-    ClassTypeInfo cti = (ClassTypeInfo) abc.getMember("jsonPropertyNameFormatter");
+  private Case getCase(AnnotationValueInfo jsonSerGen) {
+    ClassTypeInfo cti = (ClassTypeInfo) jsonSerGen.getMember("format");
     switch (cti.getName()) {
       case "io.vertx.codegen.format.CamelCase":
         return CamelCase.INSTANCE;

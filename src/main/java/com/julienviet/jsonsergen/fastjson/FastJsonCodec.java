@@ -6,6 +6,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.internal.buffer.BufferInternal;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.EncodeException;
 import io.vertx.core.json.JsonArray;
@@ -57,7 +58,7 @@ public class FastJsonCodec implements JsonCodec {
       try (ByteBufOutputStream out = new ByteBufOutputStream(bbuf)) {
         writer.flushTo(out);
         @SuppressWarnings("deprecation")
-        Buffer buff = Buffer.buffer(bbuf);
+        Buffer buff = BufferInternal.buffer(bbuf);
         return buff;
       } catch (IOException e) {
         throw new EncodeException(e.getMessage(), e);
