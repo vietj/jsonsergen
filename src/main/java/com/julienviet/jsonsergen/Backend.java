@@ -20,7 +20,7 @@ public enum Backend {
   FAST_JSON(new FastJsonWriterPlugin()),
 
   /**
-   * FastJson
+   * DslJson
    */
   DSL_JSON(new DslJsonWriterPlugin());
 
